@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -8,11 +9,11 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { registerAction } from "@/app/(authRouteGroup)/(auth)/register/_action";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { registerZodSchema } from "@/zod/auth.validation";
 import { Camera, X, Eye, EyeOff, User, Mail, Lock, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SocialLogin from "../shared/socialLogin/socialLogin";
+import Link from "next/link";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -64,7 +65,7 @@ const RegisterForm = () => {
           formData.append("phoneNumber", value.phoneNumber);
         }
 
-        const result = await registerAction(formData) as any;
+        const result = (await registerAction(formData)) as any;
 
         if (!result.success) {
           setServerError(result.message);
@@ -106,30 +107,57 @@ const RegisterForm = () => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center py-8 sm:py-12 px-4 sm:px-6 bg-gradient-to-br from-blue-50/30 via-white to-blue-50/20">
-      <Card className="w-full max-w-lg mx-auto shadow-2xl border-0 rounded-2xl overflow-hidden relative">
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-blue-600" />
-        
-        <CardHeader className="text-center pt-8 pb-4">
-          <div className="mx-auto w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg mb-4">
-            <User className="w-7 h-7 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold">
-            Create Account
-          </CardTitle>
-          <CardDescription className="text-gray-500">
-            Join BetterAuth and manage your secure account
-          </CardDescription>
-        </CardHeader>
+    <div className="fixed inset-0 z-50 flex h-screen w-screen bg-white">
+      {/* Left Side - Full Screen Cover Image */}
+      <div className="w-1/2 hidden md:block relative h-full bg-gray-50">
+        <img
+          className="h-full w-full object-cover"
+          src="/img/login_cover.png"
+          alt="Shopping cover"
+        />
+      </div>
 
-        <CardContent className="space-y-6 px-6 pb-8">
-          {/* Avatar Upload Section */}
-          <div className="flex justify-center">
+      <div className="w-full md:w-1/2 h-full flex flex-col items-center p-8 sm:p-16 overflow-y-auto custom-scrollbar bg-white">
+        <div className="w-full max-w-[400px] my-auto flex flex-col gap-5">
+          {/* Top Brand Logo Only */}
+          <div className="flex justify-center mb-2">
+            <Link href="/" className="inline-block">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm transition-all hover:scale-[1.02]">
+                <img
+                  src="/img/logo.svg"
+                  alt="logo"
+                  className="h-9 w-9 object-contain"
+                />
+              </div>
+            </Link>
+          </div>
+
+          <div className="text-center">
+            <h2 className="text-3xl text-gray-900 font-bold tracking-tight">
+              Create Account
+            </h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Join BetterAuth and manage your secure account
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex flex-col gap-5 w-full"
+          >
+
+          {/* Avatar Upload Section - Centered with better spacing */}
+          <div className="flex justify-center my-2">
             <div className="relative">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="relative w-24 h-24 rounded-full border-2 border-dashed border-blue-600/40 hover:border-blue-600 transition-all duration-200 flex items-center justify-center overflow-hidden bg-blue-50/30 hover:bg-blue-50/50"
+                className="relative w-20 h-20 rounded-full border-2 border-dashed transition-all duration-200 flex items-center justify-center overflow-hidden bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                style={{ borderColor: "var(--first-color)" }}
               >
                 {imagePreview ? (
                   <img
@@ -138,18 +166,22 @@ const RegisterForm = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="flex flex-col items-center gap-1 text-blue-600">
-                    <Camera className="w-6 h-6" />
-                    <span className="text-[10px] font-medium">Upload photo</span>
+                  <div
+                    className="flex flex-col items-center gap-0.5"
+                    style={{ color: "var(--first-color)" }}
+                  >
+                    <Camera className="w-5 h-5" />
+                    <span className="text-[9px] font-medium">Upload photo</span>
                   </div>
                 )}
               </button>
               {imagePreview && (
                 <button
+                  type="button"
                   onClick={removeImage}
-                  className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-md z-10"
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-md z-10 cursor-pointer"
                 >
-                  <X size={12} />
+                  <X size={10} />
                 </button>
               )}
             </div>
@@ -162,122 +194,121 @@ const RegisterForm = () => {
             />
           </div>
 
-          {/* Form */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              form.handleSubmit();
-            }}
-            className="space-y-4"
+          <form.Field
+            name="name"
+            validators={{ onChange: registerZodSchema.shape.name }}
           >
-            <form.Field name="name">
-              {(field) => (
-                <AppField
-                  field={field}
-                  label="Full Name"
-                  placeholder="Enter your full name"
-                  prepend={<User className="w-4 h-4 text-gray-400" />}
-                  required
-                />
-              )}
-            </form.Field>
-
-            <form.Field name="email">
-              {(field) => (
-                <AppField
-                  field={field}
-                  label="Email Address"
-                  type="email"
-                  placeholder="you@example.com"
-                  prepend={<Mail className="w-4 h-4 text-gray-400" />}
-                  required
-                />
-              )}
-            </form.Field>
-
-            {/* Password Field */}
-            <form.Field name="password">
-              {(field) => (
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-medium text-gray-700">
-                    Password <span className="text-red-500 ml-1">*</span>
-                  </Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
-                      <Lock className="w-4 h-4 text-gray-400" />
-                    </div>
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={field.state.value}
-                      placeholder="Create a password"
-                      onBlur={field.handleBlur}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                      className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20 transition-all outline-none"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 z-10">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="w-4 h-4 text-gray-400" />
-                        ) : (
-                          <Eye className="w-4 h-4 text-gray-400" />
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                  {field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-                    <p className="text-sm text-red-500">{field.state.meta.errors[0]}</p>
-                  )}
-                </div>
-              )}
-            </form.Field>
-            <p className="text-xs text-gray-400 -mt-2">Minimum 6 characters</p>
-
-            <form.Field name="phoneNumber">
-              {(field) => (
-                <AppField
-                  field={field}
-                  label="Phone Number"
-                  placeholder="+880 1XXX XXXXXX"
-                  prepend={<Phone className="w-4 h-4 text-gray-400" />}
-                />
-              )}
-            </form.Field>
-
-            {serverError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3">
-                <p className="text-red-600 text-sm text-center">{serverError}</p>
-              </div>
+            {(field) => (
+              <AppField
+                field={field}
+                label="Full Name"
+                type="text"
+                placeholder="Full Name"
+                hideLabel={true}
+                prepend={<User className="w-4 h-4 text-gray-400" />}
+                required
+              />
             )}
+          </form.Field>
 
-            <AppSubmitButton
-              isPending={isLoading}
-              pendingLabel="Creating account..."
-              className="w-full"
-            >
-              Create Account
-            </AppSubmitButton>
-            <SocialLogin/>
-          </form>
+          <form.Field
+            name="email"
+            validators={{ onChange: registerZodSchema.shape.email }}
+          >
+            {(field) => (
+              <AppField
+                field={field}
+                label="Email Address"
+                type="email"
+                placeholder="Email Address"
+                hideLabel={true}
+                prepend={<Mail className="w-4 h-4 text-gray-400" />}
+                required
+              />
+            )}
+          </form.Field>
 
-          <div className="text-center pt-2">
-            <p className="text-sm text-gray-500">
+          <form.Field
+            name="password"
+            validators={{ onChange: registerZodSchema.shape.password }}
+          >
+            {(field) => (
+              <AppField
+                field={field}
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                className="cursor-pointer"
+                hideLabel={true}
+                prepend={<Lock className="w-4 h-4 text-gray-400" />}
+                append={
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 hover:bg-transparent text-gray-400"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </Button>
+                }
+                required
+              />
+            )}
+          </form.Field>
+
+          <form.Field name="phoneNumber">
+            {(field) => (
+              <AppField
+                field={field}
+                label="Phone Number"
+                placeholder="Phone Number"
+                hideLabel={true}
+                prepend={<Phone className="w-4 h-4 text-gray-400" />}
+              />
+            )}
+          </form.Field>
+
+          {serverError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3">
+              <p className="text-red-600 text-xs text-center">{serverError}</p>
+            </div>
+          )}
+
+          <form.Subscribe
+            selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+          >
+            {([canSubmit, isSubmitting]) => (
+              <AppSubmitButton
+                isPending={isSubmitting || isLoading}
+                pendingLabel="Creating account..."
+                disabled={!canSubmit}
+                className="w-full h-12 rounded-xl text-white transition-all bg-(--first-color) border border-[var(--first-color)] hover:bg-transparent hover:text-[var(--first-color)] font-semibold shadow-md active:scale-[0.98]"
+              >
+                Create Account
+              </AppSubmitButton>
+            )}
+          </form.Subscribe>
+          <SocialLogin />
+        </form>
+
+          <div className="text-center">
+            <p className="text-gray-500 text-sm">
               Already have an account?{" "}
-              <button
-                onClick={() => router.push("/login")}
-                className="text-blue-600 font-semibold hover:text-blue-700 hover:underline transition-colors"
+              <Link
+                href="/login"
+                className="font-semibold hover:underline text-[var(--first-color)]"
               >
                 Sign in
-              </button>
+              </Link>
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 };

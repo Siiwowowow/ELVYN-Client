@@ -18,11 +18,13 @@ export interface IRefreshTokenData {
 
 export async function getNewTokensWithRefreshToken(refreshToken: string): Promise<IRefreshTokenData | null> {
     try {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("better-auth.session_token")?.value;
         const res = await fetch(`${BASE_API_URL}/auth/refresh-token`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Cookie: `refreshToken=${refreshToken}`
+                Cookie: `refreshToken=${refreshToken}${sessionToken ? `; better-auth.session_token=${sessionToken}` : ""}`
             }
         });
 
@@ -62,11 +64,13 @@ async function refreshAndGetTokens(
     refreshToken: string
 ): Promise<{ accessToken: string; sessionToken: string } | null> {
     try {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get("better-auth.session_token")?.value;
         const res = await fetch(`${BASE_API_URL}/auth/refresh-token`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Cookie: `refreshToken=${refreshToken}`
+                Cookie: `refreshToken=${refreshToken}${sessionToken ? `; better-auth.session_token=${sessionToken}` : ""}`
             }
         });
 
@@ -94,6 +98,7 @@ export async function getUserInfo() {
         const cookieStore = await cookies();
         let accessToken = cookieStore.get("accessToken")?.value;
         const refreshToken = cookieStore.get("refreshToken")?.value;
+        const sessionToken = cookieStore.get("better-auth.session_token")?.value;
 
         // If no accessToken but we have a refreshToken, get new tokens.
         // Use the RETURNED values directly — do NOT re-read cookieStore,
@@ -103,6 +108,23 @@ export async function getUserInfo() {
             const newTokens = await refreshAndGetTokens(refreshToken);
             if (newTokens) {
                 accessToken = newTokens.accessToken;
+            }
+        }
+
+        // If still no accessToken but we have a sessionToken, try fetching user info with the session token.
+        // This will verify the session on the server and return the user profile.
+        // During this request, the server will also automatically set the accessToken and refreshToken cookies!
+        if (!accessToken && sessionToken) {
+            const res = await fetch(`${BASE_API_URL}/auth/me`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Cookie: `better-auth.session_token=${sessionToken}`
+                }
+            });
+            if (res.ok) {
+                const { data } = await res.json();
+                return data;
             }
         }
 

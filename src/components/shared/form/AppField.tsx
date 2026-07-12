@@ -1,4 +1,4 @@
-//src/components/shared/form/AppField.tsx
+// src/components/shared/form/AppField.tsx
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,9 @@ type AppFieldProps = {
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  hideLabel?: boolean;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
 const AppField = ({
@@ -37,6 +40,7 @@ const AppField = ({
   className,
   disabled = false,
   required = false,
+  hideLabel = false,
 }: AppFieldProps) => {
   const firstError =
     field.state.meta.isTouched && field.state.meta.errors.length > 0
@@ -45,18 +49,24 @@ const AppField = ({
 
   const hasError = firstError !== null;
 
+  // Fix: Properly handle the onChange
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    field.handleChange(e.target.value);
+  };
+
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label
-        htmlFor={field.name}
-        className={cn(hasError && "text-destructive", "text-sm font-medium")}
-      >
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </Label>
+    <div className={cn("space-y-1.5 w-full", className)}>
+      {!hideLabel && (
+        <Label
+          htmlFor={field.name}
+          className={cn(hasError && "text-destructive", "text-sm font-medium")}
+        >
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </Label>
+      )}
 
       <div className="relative">
-        {/* Prepend Icon/Button - Left Side */}
         {prepend && (
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 z-10">
             {prepend}
@@ -67,22 +77,22 @@ const AppField = ({
           id={field.name}
           name={field.name}
           type={type}
-          value={field.state.value}
+          value={field.state.value || ""}
           placeholder={placeholder}
           onBlur={field.handleBlur}
-          onChange={(e) => field.handleChange(e.target.value)}
+          onChange={handleChange} // Fixed here
           disabled={disabled}
           aria-invalid={hasError}
           aria-describedby={hasError ? `${field.name}-error` : undefined}
           className={cn(
-            "w-full rounded-xl border-gray-200 focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all outline-none py-2.5",
-            prepend && "pl-10",
-            append && "pr-10",
-            hasError && "border-destructive focus-visible:ring-destructive/20"
+            "w-full bg-white text-gray-800 border border-gray-200 h-12 rounded-xl transition-all outline-none py-0 px-4 text-sm placeholder-gray-400 focus:border-[var(--first-color)] focus:ring-2 focus:ring-[var(--first-color)]/20",
+            prepend && "pl-11",
+            append && "pr-11",
+            hasError && "border-destructive focus-visible:ring-destructive/20",
+            className
           )}
         />
 
-        {/* Append Button - Right Side (Properly Aligned) */}
         {append && (
           <div className="absolute inset-y-0 right-0 flex items-center pr-2 z-10">
             {append}
@@ -90,7 +100,6 @@ const AppField = ({
         )}
       </div>
 
-      {/* Error Message */}
       {hasError && (
         <p
           id={`${field.name}-error`}

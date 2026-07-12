@@ -1,5 +1,4 @@
 //src/components/shared/form/AppSubmitButton.tsx
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
@@ -25,19 +24,19 @@ const AppSubmitButton = ({
     const isDisabled = disabled || isPending;
 
   return (
-    <Button 
+    <button 
         type='submit'
         disabled={isDisabled} 
-        className={cn("w-full", className)}
+        className={cn("btn w-full cursor-pointer flex items-center justify-center gap-2", className)}
     >
       {isPending ? (
         <>
-            <Loader2 className="animate-spin" aria-hidden="true"/>
+            <Loader2 className="animate-spin h-4 w-4" aria-hidden="true"/>
             {pendingLabel ? pendingLabel : children}
         </>
       ) : children
       }
-    </Button>
+    </button>
   )
 }
 

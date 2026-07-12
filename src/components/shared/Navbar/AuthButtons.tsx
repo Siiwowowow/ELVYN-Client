@@ -1,7 +1,7 @@
 // components/shared/Navbar/AuthButtons.tsx
 
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface Props {
   onLinkClick?: () => void;

@@ -1,20 +1,14 @@
+/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react/no-unescaped-entities */
 "use client";
 import { loginAction } from "@/app/(authRouteGroup)/(auth)/login/_action";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { ILoginPayload, loginZodSchema } from "@/zod/auth.validation";
 import { useForm } from "@tanstack/react-form";
 import { useMutation } from "@tanstack/react-query";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import AppField from "../shared/form/AppField";
@@ -27,7 +21,7 @@ import { UserRole } from "@/lib/authUtils";
 
 interface LoginFormProps {
   redirectPath?: string;
-  defaultEmail?: string;      // 👈 যোগ করা হয়েছে (Register থেকে email pass করার জন্য)
+  defaultEmail?: string;
 }
 
 const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
@@ -42,14 +36,13 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
 
   const form = useForm({
     defaultValues: {
-      email: defaultEmail,    // 👈 যোগ করা হয়েছে (URL থেকে email pre-fill হবে)
+      email: defaultEmail,
       password: "",
     },
-
     onSubmit: async ({ value }) => {
       setServerError(null);
       try {
-        const result = await mutateAsync(value) as any;
+        const result = (await mutateAsync(value)) as any;
 
         if (!result.success) {
           setServerError(result.message || "Login failed");
@@ -58,13 +51,11 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
 
         toast.success("Login successful!");
         setUser(result.user);
-
         router.refresh();
 
         if (result.redirectUrl) {
           router.push(result.redirectUrl);
         } else {
-          // 👈 Fallback: Role based redirect
           const userRole = result.user?.role as UserRole;
           const roleBasedRedirect = getRoleBasedRedirect(userRole);
           router.push(roleBasedRedirect);
@@ -76,7 +67,6 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
     },
   });
 
-  // 👈 Fallback function for role based redirect
   const getRoleBasedRedirect = (role: UserRole): string => {
     switch (role) {
       case "SUPER_ADMIN":
@@ -92,24 +82,49 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto shadow-md">
-      <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
-        <CardDescription>Please enter your credentials to log in.</CardDescription>
-      </CardHeader>
+    <div className="fixed inset-0 z-50 flex h-screen w-screen bg-white">
+      {/* Left Side - Full Screen Cover Image (No overlays or text) */}
+      <div className="w-1/2 hidden md:block relative h-full bg-gray-50">
+        <img
+          className="h-full w-full object-cover"
+          src="/img/login_cover.png"
+          alt="Shopping cover"
+        />
+      </div>
 
-      <CardContent>
-        <form
-          method="POST"
-          action="#"
-          noValidate
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            form.handleSubmit();
-          }}
-          className="space-y-4"
-        >
+      <div className="w-full md:w-1/2 h-full flex flex-col items-center p-8 sm:p-16 overflow-y-auto custom-scrollbar bg-white">
+        <div className="w-full max-w-[400px] my-auto flex flex-col gap-5">
+          {/* Top Brand Logo Only (No text logo!) */}
+          <div className="flex justify-center mb-2">
+            <Link href="/" className="inline-block">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center border border-gray-100 shadow-sm transition-all hover:scale-[1.02]">
+                <img
+                  src="/img/logo.svg"
+                  alt="logo"
+                  className="h-9 w-9 object-contain"
+                />
+              </div>
+            </Link>
+          </div>
+
+          <div className="text-center">
+            <h2 className="text-3xl text-gray-900 font-bold tracking-tight">
+              Welcome back
+            </h2>
+            <p className="text-sm text-gray-500 mt-2">
+              Sign in to continue your secure shopping journey.
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+            className="flex flex-col gap-5 w-full"
+          >
+
           <form.Field
             name="email"
             validators={{ onChange: loginZodSchema.shape.email }}
@@ -119,7 +134,9 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
                 field={field}
                 label="Email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Email address"
+                hideLabel={true}
+                prepend={<Mail className="w-4 h-4 text-gray-400" />}
               />
             )}
           </form.Field>
@@ -133,20 +150,22 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
                 field={field}
                 label="Password"
                 type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                placeholder="Password"
                 className="cursor-pointer"
+                hideLabel={true}
+                prepend={<Lock className="w-4 h-4 text-gray-400" />}
                 append={
                   <Button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     variant="ghost"
                     size="icon"
+                    className="hover:bg-transparent h-8 w-8 text-gray-400"
                   >
                     {showPassword ? (
-                      <EyeOff className="size-4" aria-hidden="true" />
+                      <EyeOff className="size-4" />
                     ) : (
-                      <Eye className="size-4" aria-hidden="true" />
+                      <Eye className="size-4" />
                     )}
                   </Button>
                 }
@@ -154,10 +173,23 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
             )}
           </form.Field>
 
-          <div className="text-right mt-2">
+          <div className="w-full flex items-center justify-between text-gray-500/80">
+            <div className="flex items-center gap-2">
+              <input
+                className="h-4 w-4 rounded border-gray-300 text-[var(--first-color)] focus:ring-[var(--first-color)] cursor-pointer"
+                type="checkbox"
+                id="remember"
+              />
+              <label
+                className="text-sm text-gray-600 cursor-pointer select-none font-medium"
+                htmlFor="remember"
+              >
+                Remember me
+              </label>
+            </div>
             <Link
               href="/forgot-password"
-              className="text-sm text-primary hover:underline underline-offset-4"
+              className="text-sm font-semibold hover:underline text-rose-500"
             >
               Forgot password?
             </Link>
@@ -169,43 +201,37 @@ const LoginForm = ({ redirectPath, defaultEmail = "" }: LoginFormProps) => {
             </Alert>
           )}
 
-          <form.Subscribe selector={(s) => [s.canSubmit, s.isSubmitting] as const}>
+          <form.Subscribe
+            selector={(s) => [s.canSubmit, s.isSubmitting] as const}
+          >
             {([canSubmit, isSubmitting]) => (
               <AppSubmitButton
                 isPending={isSubmitting || isPending}
-                pendingLabel="Logging In...."
+                pendingLabel="Logging In..."
                 disabled={!canSubmit}
+                className="w-full h-12 rounded-xl text-white transition-all bg-[var(--first-color)] border border-[var(--first-color)] hover:bg-transparent hover:text-[var(--first-color)] font-semibold shadow-md active:scale-[0.98]"
               >
-                Log In
+                Sign in
               </AppSubmitButton>
             )}
           </form.Subscribe>
+          <SocialLogin />
         </form>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+          <div className="text-center">
+            <p className="text-gray-500 text-sm">
+              Don't have an account?{" "}
+              <Link
+                href="/register"
+                className="font-semibold hover:underline text-[var(--first-color)]"
+              >
+                Sign up
+              </Link>
+            </p>
           </div>
         </div>
-
-        <SocialLogin />
-      </CardContent>
-
-      <CardFooter className="justify-center border-t pt-4">
-        <p className="text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/register"
-            className="text-primary font-medium hover:underline underline-offset-4"
-          >
-            Sign Up for an account
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 };
 

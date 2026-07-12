@@ -1,10 +1,20 @@
+// components/shared/Navbar/UserAvatar.tsx
 "use client";
 
 import { useUser } from "@/hooks/useUser";
 import { useRef, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Camera, Trash2, LogOut, User } from "lucide-react";
+import { 
+  Camera, 
+  Trash2, 
+  LogOut, 
+  User, 
+  Settings, 
+  Shield,
+  ShoppingBag,
+  ChevronDown
+} from "lucide-react";
 import Link from "next/link";
 import {
   Avatar,
@@ -31,7 +41,7 @@ export default function UserAvatar() {
   const router = useRouter();
   const initials = getInitials(user?.name, user?.email);
 
-  // ✅ Outside click এ dropdown বন্ধ
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (
@@ -45,7 +55,7 @@ export default function UserAvatar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // ✅ Photo upload
+  // Handle file upload
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -76,7 +86,7 @@ export default function UserAvatar() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // ✅ Photo remove
+  // Remove photo
   const handleRemovePhoto = async () => {
     setOpen(false);
     const toastId = toast.loading("Removing photo...");
@@ -91,7 +101,7 @@ export default function UserAvatar() {
     }
   };
 
-  // ✅ Logout
+  // Logout
   const handleLogout = async () => {
     setOpen(false);
     toast.loading("Logging out...", { id: "logout" });
@@ -99,9 +109,22 @@ export default function UserAvatar() {
     toast.success("Logged out successfully!", { id: "logout" });
   };
 
+  // Get dashboard link based on role
+  const getDashboardLink = () => {
+    if (!user?.role) return "/dashboard";
+    switch (user.role) {
+      case "SUPER_ADMIN":
+      case "ADMIN":
+        return "/admin/dashboard";
+      case "SELLER":
+        return "/seller/dashboard";
+      default:
+        return "/dashboard";
+    }
+  };
+
   return (
     <div ref={dropdownRef} className="relative">
-
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -111,20 +134,19 @@ export default function UserAvatar() {
         onChange={handleFileChange}
       />
 
-      {/* ✅ Avatar button */}
+      {/* Avatar Button */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="focus:outline-none"
+        className="flex items-center gap-2 focus:outline-none transition-transform hover:scale-105"
         aria-label="Open user menu"
       >
-        <Avatar size="lg" className="cursor-pointer hover:opacity-90 transition-opacity">
+        <Avatar className="cursor-pointer border-2 border-transparent hover:border-emerald-500 transition-all">
           {uploading ? (
             <AvatarFallback>
-              <div className="w-4 h-4 border-2 border-muted border-t-primary rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-gray-300 border-t-emerald-600 rounded-full animate-spin" />
             </AvatarFallback>
           ) : (
             <>
-              {/* ✅ image থাকলেই render করুন — empty string দেবেন না */}
               {user?.image && (
                 <AvatarImage
                   src={user.image}
@@ -132,23 +154,25 @@ export default function UserAvatar() {
                   referrerPolicy="no-referrer"
                 />
               )}
-              <AvatarFallback>{initials}</AvatarFallback>
+              <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
+                {initials}
+              </AvatarFallback>
             </>
           )}
-          <AvatarBadge>
-            <Camera strokeWidth={2.5} />
+          <AvatarBadge className="bg-emerald-500 hover:bg-emerald-600 transition-colors">
+            <Camera strokeWidth={2.5} className="w-3 h-3" />
           </AvatarBadge>
         </Avatar>
+        <ChevronDown className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {/* ✅ Dropdown */}
+      {/* Dropdown Menu */}
       {open && (
-        <div className="absolute right-0 top-12 w-60 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-50 overflow-hidden">
-
-          {/* User info header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-            <Avatar>
-              {/* ✅ image থাকলেই render করুন */}
+        <div className="absolute right-0 top-14 w-64 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          
+          {/* User Info Header */}
+          <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+            <Avatar className="w-10 h-10">
               {user?.image && (
                 <AvatarImage
                   src={user.image}
@@ -156,54 +180,77 @@ export default function UserAvatar() {
                   referrerPolicy="no-referrer"
                 />
               )}
-              <AvatarFallback className="bg-gray-200 text-gray-700">
+              <AvatarFallback className="bg-emerald-100 text-emerald-700">
                 {initials}
               </AvatarFallback>
             </Avatar>
 
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {user?.name || "User"}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {user?.email}
               </p>
+              {user?.role && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  <Shield className="w-3 h-3" />
+                  {user.role.replace('_', ' ')}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* ✅ Profile page link */}
+          {/* Menu Items */}
           <div className="py-1">
             <Link
               href="/profile"
               onClick={() => setOpen(false)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <User className="w-4 h-4 flex-shrink-0" />
-              My profile
+              <User className="w-4 h-4 flex-shrink-0 text-gray-500" />
+              My Profile
+            </Link>
+
+            <Link
+              href="/orders"
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <ShoppingBag className="w-4 h-4 flex-shrink-0 text-gray-500" />
+              My Orders
+            </Link>
+
+            <Link
+              href={getDashboardLink()}
+              onClick={() => setOpen(false)}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+            >
+              <Settings className="w-4 h-4 flex-shrink-0 text-gray-500" />
+              Dashboard
             </Link>
           </div>
 
-          {/* Photo options */}
+          {/* Photo Options */}
           <div className="border-t border-gray-100 dark:border-gray-800 py-1">
             <button
               onClick={() => {
                 fileInputRef.current?.click();
                 setOpen(false);
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
             >
-              <Camera className="w-4 h-4 flex-shrink-0" />
-              {user?.image ? "Change photo" : "Upload photo"}
+              <Camera className="w-4 h-4 flex-shrink-0 text-gray-500" />
+              {user?.image ? "Change Photo" : "Upload Photo"}
             </button>
 
-            {/* image থাকলেই Remove দেখাবে */}
             {user?.image && (
               <button
                 onClick={handleRemovePhoto}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors text-left"
               >
                 <Trash2 className="w-4 h-4 flex-shrink-0" />
-                Remove photo
+                Remove Photo
               </button>
             )}
           </div>
@@ -212,7 +259,7 @@ export default function UserAvatar() {
           <div className="border-t border-gray-100 dark:border-gray-800 py-1">
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-colors text-left font-medium"
             >
               <LogOut className="w-4 h-4 flex-shrink-0" />
               Logout

@@ -1,24 +1,24 @@
-import { Shield } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
-export default function Logo() {
+interface LogoProps {
+  onClick?: () => void;
+  className?: string;
+  width?: number;
+  height?: number;
+}
+
+export default function Logo({ onClick, className, width = 120, height = 28 }: LogoProps) {
   return (
-    <Link href="/" className="flex items-center gap-2 group">
-      <div className="relative">
-        <div className="absolute inset-0 bg-linear-to-r from-blue-600 to-blue-500 blur-md opacity-60 group-hover:opacity-100 transition" />
-        <div className="relative w-9 h-9 bg-linear-to-br from-blue-600 to-blue-500 rounded-xl flex items-center justify-center shadow-lg">
-          <Shield className="w-4 h-4 text-white" />
-        </div>
-      </div>
-
-      <div>
-        <span className="text-xl font-bold bg-linear-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent font-poppins">
-          BetterAuth
-        </span>
-        <span className="block text-[10px] text-muted-foreground">
-          Secure Portal
-        </span>
-      </div>
+    <Link href="/" onClick={onClick} className={`flex-shrink-0 inline-block ${className || ""}`}>
+      <Image
+        src="/img/logo.svg"
+        alt="Elvyn logo"
+        width={100}
+        height={70}
+        priority
+        
+      />
     </Link>
   );
 }

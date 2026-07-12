@@ -1,7 +1,8 @@
 "use client";
 
-import React, { Suspense } from 'react'
-import { GoogleLoginSuccess } from '@/components/GoogleLoginSuccess';
+import React, { Suspense } from "react";
+import HomePage from "./(commonLayout)/Home/page";
+import { GoogleLoginSuccess } from "@/components/GoogleLoginSuccess";
 
 export default function Page() {
   return (
@@ -9,9 +10,7 @@ export default function Page() {
       <Suspense fallback={null}>
         <GoogleLoginSuccess />
       </Suspense>
-      <div>
-        
-      </div>
+      <HomePage />
     </>
-  )
+  );
 }

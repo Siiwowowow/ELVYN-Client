@@ -1,3 +1,6 @@
+// components/shared/Navbar/types.ts
+import { ReactComponentElement } from "react";
+
 export interface NavLink {
   label: string;
   href: string;
