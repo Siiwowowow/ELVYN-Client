@@ -1,32 +1,23 @@
-"use client";
-
 import React from "react";
-import { User, Home, LogOut, LayoutDashboard, Settings, ShoppingBag, Heart } from "lucide-react";
+import { Store, Home, LogOut } from "lucide-react";
 import PanelToggleIcon from "@/app/(dashboardLayout)/seller/Paneltoggleicon";
+import { SELLER_ROUTES } from "@/constants/sellerRoutes";
 import Link from "next/link";
 import { useUser } from "@/hooks/useUser";
 
-export const USER_ROUTES = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, path: "/user/dashboard" },
-  { id: "profile", label: "My Profile", icon: User, path: "/profile" },
-  { id: "orders", label: "My Orders", icon: ShoppingBag, path: "/user/orders" },
-  { id: "wishlist", label: "Wishlist", icon: Heart, path: "/Wishlist" },
-  { id: "password", label: "Update Password", icon: Settings, path: "/change-password" },
-];
-
-interface UserSidebarProps {
+interface SellerSidebarProps {
   collapsed: boolean;
   onToggle: () => void;
   activeRoute: string;
   onNavigate: (id: string) => void;
 }
 
-export default function UserSidebar({
+export default function SellerSidebar({
   collapsed,
   onToggle,
   activeRoute,
   onNavigate,
-}: UserSidebarProps) {
+}: SellerSidebarProps) {
   const { user, logout } = useUser();
 
   const handleRouteClick = (routeId: string) => {
@@ -37,14 +28,12 @@ export default function UserSidebar({
     }
   };
 
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
-
   return (
     <>
       {/* Mobile Backdrop Overlay */}
       {!collapsed && (
         <div
-          className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-45 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300"
           onClick={onToggle}
         />
       )}
@@ -66,11 +55,11 @@ export default function UserSidebar({
         >
           {!collapsed && (
             <div className="flex items-center min-w-0">
-              <div className="flex items-center justify-center w-9 h-9 rounded-md bg-emerald-600 text-white shrink-0 shadow-md shadow-emerald-500/10">
-                <User size={18} />
+              <div className="flex items-center justify-center w-9 h-9 rounded-md bg-orange-500 text-white shrink-0">
+                <Store size={18} />
               </div>
               <span className="ml-3 font-semibold text-white text-sm tracking-wide truncate">
-                User Dashboard
+                Seller Console
               </span>
             </div>
           )}
@@ -78,7 +67,7 @@ export default function UserSidebar({
             type="button"
             onClick={onToggle}
             title={collapsed ? "Open sidebar" : "Close sidebar"}
-            className="flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:text-emerald-400 hover:bg-slate-800 transition-colors shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded-md text-slate-400 hover:text-orange-400 hover:bg-slate-800 transition-colors shrink-0"
           >
             <PanelToggleIcon collapsed={collapsed} />
           </button>
@@ -86,7 +75,7 @@ export default function UserSidebar({
 
         {/* Route list */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-1">
-          {USER_ROUTES.map((route) => {
+          {SELLER_ROUTES.map((route) => {
             const Icon = route.icon;
             const isActive = activeRoute === route.id;
             return (
@@ -99,12 +88,12 @@ export default function UserSidebar({
                   ${collapsed ? "justify-center" : "justify-start gap-3"}
                   ${
                     isActive
-                      ? "bg-emerald-500/10 text-emerald-400"
+                      ? "bg-orange-500/10 text-orange-400"
                       : "text-slate-400 hover:bg-slate-800 hover:text-slate-100"
                   }`}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r bg-emerald-500" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r bg-orange-500" />
                 )}
                 <Icon size={19} className="shrink-0" />
                 {!collapsed && <span className="truncate">{route.label}</span>}
@@ -130,23 +119,23 @@ export default function UserSidebar({
           {!collapsed ? (
             <div className="flex items-center justify-between p-3 border-t border-slate-800 bg-slate-950/40">
               <div className="flex items-center min-w-0 gap-3">
-                <div className="h-9 w-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm border border-slate-700 overflow-hidden shrink-0 shadow-inner">
-                  {user?.image ? (
+                <div className="h-9 w-9 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm border border-slate-700 overflow-hidden shrink-0 shadow-inner">
+                  {user?.image || user?.uploadedImage ? (
                     <img
-                      src={user.image}
+                      src={user.image || user.uploadedImage || ""}
                       alt="Avatar"
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span>{userInitial}</span>
+                    <span>{user?.name?.charAt(0).toUpperCase() || "S"}</span>
                   )}
                 </div>
                 <div className="flex flex-col min-w-0 text-left">
                   <span className="text-xs font-semibold text-slate-200 truncate leading-tight">
-                    {user?.name || "Customer"}
+                    {user?.name || "Seller"}
                   </span>
                   <span className="text-[10px] text-slate-500 truncate mt-0.5">
-                    {user?.email || ""}
+                    {user?.email || "seller@example.com"}
                   </span>
                 </div>
               </div>
@@ -161,17 +150,17 @@ export default function UserSidebar({
           ) : (
             <div className="flex flex-col items-center p-2 border-t border-slate-800 bg-slate-950/40 gap-2">
               <div
-                title={user?.email || "User Panel"}
-                className="h-9 w-9 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm border border-slate-700 overflow-hidden shrink-0 shadow-inner"
+                title={user?.email || "Seller Panel"}
+                className="h-9 w-9 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm border border-slate-700 overflow-hidden shrink-0 shadow-inner"
               >
-                {user?.image ? (
+                {user?.image || user?.uploadedImage ? (
                   <img
-                    src={user.image}
+                    src={user.image || user.uploadedImage || ""}
                     alt="Avatar"
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>{userInitial}</span>
+                  <span>{user?.name?.charAt(0).toUpperCase() || "S"}</span>
                 )}
               </div>
               <button

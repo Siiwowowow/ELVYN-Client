@@ -5,10 +5,8 @@ import "./globals.css";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import QueryProviders from "@/providers/QueryProvider";
 import { AuthProvider } from "@/providers/AuthProvider";
-import { Navbar } from "@/components/shared/Navbar"; // Updated import
 import { Toaster } from "sonner";
 import { getUserInfo } from "@/services/auth.services";
-import Footer from "@/components/shared/Footer/Footer";
 
 // Configure fonts properly
 const geistSans = Geist({
@@ -65,12 +63,8 @@ export default async function RootLayout({
         <QueryProviders>
           <AuthProvider initialUser={user}>
             <TooltipProvider>
-              <Navbar showTopBar={true} />
-              <main className="flex-1 shrink-0 p-4">
-                {children}
-                <Toaster richColors position="top-right" />
-              </main>
-              <Footer/>
+              {children}
+              <Toaster richColors position="top-right" />
             </TooltipProvider>
           </AuthProvider>
         </QueryProviders>

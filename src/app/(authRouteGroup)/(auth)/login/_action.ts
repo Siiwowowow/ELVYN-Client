@@ -75,12 +75,14 @@ export const loginAction = async (
   } catch (error: any) {
     console.log(error, "login error");
 
-    // ✅ handle email not verified
+    // ✅ handle email not verified (Disabled as verification is bypassed)
+    /*
     if (
       error?.response?.data?.message === "Email not verified"
     ) {
       redirect(`/verify-email?email=${payload.email}`);
     }
+    */
 
     return {
       success: false,

@@ -1,43 +1,183 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable react-hooks/immutability */
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
+import { Loader2, AlertCircle } from "lucide-react";
+import { getAllCategoriesService, getAllProductsService } from "@/services/product.services";
+import { useUser } from "@/hooks/useUser";
+
+interface Category {
+  id: string;
+  name: string;
+  img: string;
+}
 
 interface Product {
   id: string;
-  category: string;
   title: string;
   imgDefault: string;
   imgHover: string;
-  badge?: string;
-  badgeClass?: string;
+  badge?: string | null;
+  badgeClass?: string | null;
   rating: number;
-  newPrice: string;
-  oldPrice: string;
+  newPrice: number;
+  oldPrice: number;
+  categoryId: string;
+  category?: Category;
 }
 
-const shopProducts: Product[] = [
-  { id: "s1", category: "Clothing", title: "Colorful Pattern Shirt", imgDefault: "/img/product-1-1.jpg", imgHover: "/img/product-1-2.jpg", badge: "Hot", badgeClass: "light-pink", rating: 5, newPrice: "$238.85", oldPrice: "$245.8" },
-  { id: "s2", category: "Clothing", title: "Sleek Floral Blouse", imgDefault: "/img/product-2-1.jpg", imgHover: "/img/product-2-2.jpg", badge: "Hot", badgeClass: "light-green", rating: 5, newPrice: "$120.00", oldPrice: "$145.8" },
-  { id: "s3", category: "Clothing", title: "Classic Denim Jacket", imgDefault: "/img/product-3-1.jpg", imgHover: "/img/product-3-2.jpg", badge: "Hot", badgeClass: "light-orange", rating: 5, newPrice: "$340.50", oldPrice: "$390.00" },
-  { id: "s4", category: "Clothing", title: "Casual Stripe Tee", imgDefault: "/img/product-4-1.jpg", imgHover: "/img/product-4-2.jpg", rating: 4, newPrice: "$95.00", oldPrice: "$110.00" },
-  { id: "s5", category: "Clothing", title: "Summer Sun Dress", imgDefault: "/img/product-5-1.jpg", imgHover: "/img/product-5-2.jpg", badge: "-30%", badgeClass: "light-blue", rating: 5, newPrice: "$180.00", oldPrice: "$250.00" },
-  { id: "s6", category: "Clothing", title: "Urban Cargo Pants", imgDefault: "/img/product-6-1.jpg", imgHover: "/img/product-6-2.jpg", badge: "-22%", badgeClass: "light-blue", rating: 4, newPrice: "$210.00", oldPrice: "$270.00" },
-  { id: "s7", category: "Bags", title: "Leather Handbag", imgDefault: "/img/product-7-1.jpg", imgHover: "/img/product-7-2.jpg", rating: 5, newPrice: "$450.00", oldPrice: "$500.00" },
-  { id: "s8", category: "Hats", title: "Knitted Winter Cap", imgDefault: "/img/product-8-1.jpg", imgHover: "/img/product-8-2.jpg", rating: 5, newPrice: "$45.00", oldPrice: "$55.00" },
-  { id: "s9", category: "Bags", title: "Cozy Woolen Scarf", imgDefault: "/img/product-9-1.jpg", imgHover: "/img/product-9-2.jpg", badge: "Hot", rating: 4, newPrice: "$65.00", oldPrice: "$85.00" },
-  { id: "s10", category: "Clothing", title: "Colorful Pattern Shirt", imgDefault: "/img/product-10-1.jpg", imgHover: "/img/product-10-2.jpg", rating: 5, newPrice: "$238.85", oldPrice: "$245.8" },
-  { id: "s11", category: "Clothing", title: "Sleek Floral Blouse", imgDefault: "/img/product-11-1.jpg", imgHover: "/img/product-11-2.jpg", rating: 4, newPrice: "$120.00", oldPrice: "$145.8" },
-  { id: "s12", category: "Clothing", title: "Classic Denim Jacket", imgDefault: "/img/product-12-1.jpg", imgHover: "/img/product-12-2.jpg", rating: 5, newPrice: "$340.50", oldPrice: "$390.00" },
-];
-
 export default function ShopPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const { user } = useUser();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filteredProducts = selectedCategory === "All"
-    ? shopProducts
-    : shopProducts.filter(p => p.category === selectedCategory);
+  // Filter, Sorting & Pagination state
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [priceRange, setPriceRange] = useState<number>(500);
+  const [sorting, setSorting] = useState<string>("Default Sorting");
+  
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(6); // 6 products per page
+  const [totalPage, setTotalPage] = useState<number>(1);
+  const [totalProducts, setTotalProducts] = useState<number>(0);
+
+  // Load categories once on mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Fetch products when page, category, price, or sorting changes
+  useEffect(() => {
+    fetchProducts();
+  }, [page, selectedCategory, priceRange, sorting]);
+
+  const fetchCategories = async () => {
+    const res = await getAllCategoriesService();
+    if (res.success && res.data) {
+      setCategories(res.data);
+    }
+  };
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    const query: Record<string, string> = {
+      page: String(page),
+      limit: String(limit),
+    };
+
+    if (selectedCategory !== "All") {
+      query.category = selectedCategory;
+    }
+
+    if (priceRange < 500) {
+      query.maxPrice = String(priceRange);
+    }
+
+    // Apply sorting logic
+    if (sorting === "Price: Low to High") {
+      query.sortBy = "newPrice";
+      query.sortOrder = "asc";
+    } else if (sorting === "Price: High to Low") {
+      query.sortBy = "newPrice";
+      query.sortOrder = "desc";
+    } else if (sorting === "Release Date") {
+      query.sortBy = "createdAt";
+      query.sortOrder = "desc";
+    }
+
+    const res = await getAllProductsService(query);
+    if (res.success && res.data) {
+      setProducts(res.data);
+      if (res.meta) {
+        setTotalPage(res.meta.totalPage || 1);
+        setTotalProducts(res.meta.total || 0);
+      }
+    } else {
+      toast.error(res.message || "Failed to load products");
+    }
+    setIsLoading(false);
+  };
+
+  const handleCategorySelect = (catName: string) => {
+    setSelectedCategory(catName);
+    setPage(1); // Reset to page 1 on category change
+  };
+
+  const handleAddToCart = (e: React.MouseEvent, prod: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your cart!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const cart = JSON.parse(window.localStorage.getItem("elvyn_cart") || "[]");
+        const existingIndex = cart.findIndex((item: any) => item.id === prod.id);
+        if (existingIndex > -1) {
+          cart[existingIndex].qty += 1;
+        } else {
+          cart.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault || "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/card/productImage.png",
+            price: prod.newPrice,
+            qty: 1
+          });
+        }
+        window.localStorage.setItem("elvyn_cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("elvyn_cart_updated"));
+        toast.success(`"${prod.title}" added to shopping cart!`);
+      } catch (err) {
+        console.error("Cart error:", err);
+      }
+    }
+  };
+
+  const handleAddToWishlist = (e: React.MouseEvent, prod: Product) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your wishlist!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const wishlist = JSON.parse(window.localStorage.getItem("elvyn_wishlist") || "[]");
+        const exists = wishlist.some((item: any) => item.id === prod.id);
+        if (!exists) {
+          wishlist.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault || "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/card/productImage.png",
+            price: prod.newPrice,
+            inStock: true
+          });
+          window.localStorage.setItem("elvyn_wishlist", JSON.stringify(wishlist));
+          window.dispatchEvent(new Event("elvyn_wishlist_updated"));
+          toast.success(`"${prod.title}" added to wishlist!`);
+        } else {
+          toast.info(`"${prod.title}" is already in your wishlist!`);
+        }
+      } catch (err) {
+        console.error("Wishlist error:", err);
+      }
+    }
+  };
+
+
+
+
 
   return (
     <div className="container section">
@@ -56,17 +196,29 @@ export default function ShopPage() {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b">Categories</h3>
             <ul className="space-y-2">
-              {["All", "Clothing", "Bags", "Hats"].map((cat) => (
-                <li key={cat}>
+              <li>
+                <button
+                  onClick={() => handleCategorySelect("All")}
+                  className={`w-full text-left py-2 px-3 rounded-lg text-sm transition-colors duration-200 cursor-pointer ${
+                    selectedCategory === "All"
+                      ? "bg-emerald-50 text-emerald-850 font-semibold"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  All Categories
+                </button>
+              </li>
+              {categories.map((cat) => (
+                <li key={cat.id}>
                   <button
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`w-full text-left py-2 px-3 rounded-lg text-sm transition-colors duration-200 ${
-                      selectedCategory === cat
-                        ? "bg-emerald-50 text-emerald-800 font-semibold"
+                    onClick={() => handleCategorySelect(cat.name)}
+                    className={`w-full text-left py-2 px-3 rounded-lg text-sm transition-colors duration-200 cursor-pointer ${
+                      selectedCategory === cat.name
+                        ? "bg-emerald-50 text-emerald-855 font-semibold"
                         : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    {cat}
+                    {cat.name}
                   </button>
                 </li>
               ))}
@@ -76,11 +228,21 @@ export default function ShopPage() {
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
             <h3 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b">Filter by Price</h3>
             <div className="space-y-4">
-              <input type="range" className="w-full accent-emerald-600" min="0" max="500" />
-              <div className="flex justify-between text-xs text-gray-500 font-semibold">
-                <span>Range: $0 - $500</span>
-                <button className="bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700 transition-colors">
-                  Filter
+              <input
+                type="range"
+                className="w-full accent-emerald-600 cursor-pointer"
+                min="0"
+                max="500"
+                value={priceRange}
+                onChange={(e) => setPriceRange(Number(e.target.value))}
+              />
+              <div className="flex justify-between items-center text-xs text-gray-500 font-semibold">
+                <span>Max: ${priceRange}</span>
+                <button
+                  onClick={fetchProducts}
+                  className="bg-emerald-600 text-white px-3 py-1 rounded hover:bg-emerald-700 transition-colors cursor-pointer"
+                >
+                  Apply Limit
                 </button>
               </div>
             </div>
@@ -91,9 +253,16 @@ export default function ShopPage() {
         <div className="lg:col-span-3">
           <div className="total__products flex justify-between items-center mb-6">
             <p className="text-sm text-gray-600">
-              We found <span>{filteredProducts.length}</span> items for you!
+              We found <span className="font-bold text-emerald-700">{totalProducts}</span> items for you!
             </p>
-            <select className="border border-gray-200 rounded-lg p-2 text-sm text-gray-600 bg-white">
+            <select
+              value={sorting}
+              onChange={(e) => {
+                setSorting(e.target.value);
+                setPage(1);
+              }}
+              className="border border-gray-200 rounded-lg p-2 text-sm text-gray-600 bg-white focus:outline-none focus:border-emerald-500 cursor-pointer"
+            >
               <option>Default Sorting</option>
               <option>Price: Low to High</option>
               <option>Price: High to Low</option>
@@ -101,74 +270,124 @@ export default function ShopPage() {
             </select>
           </div>
 
-          <div className="shop-products__grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredProducts.map((prod) => (
-              <div key={prod.id} className="product__item group relative">
-                <div className="product__banner">
-                  <Link href={`/Shop/${prod.id}`} className="product__images">
-                    <Image
-                      src={prod.imgDefault}
-                      alt={prod.title}
-                      className="product__img default w-full object-cover rounded-xl"
-                      width={300}
-                      height={370}
-                    />
-                    <Image
-                      src={prod.imgHover}
-                      alt={prod.title}
-                      className="product__img hover w-full object-cover absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-xl"
-                      width={300}
-                      height={370}
-                    />
-                  </Link>
-                  <div className="product__actions opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <Link href={`/Shop/${prod.id}`} className="action__btn" aria-label="Quick View">
-                      <i className="fi fi-rs-eye"></i>
-                    </Link>
-                    <a href="#wishlist" className="action__btn" aria-label="Add to Wishlist">
-                      <i className="fi fi-rs-heart"></i>
-                    </a>
-                    <a href="#compare" className="action__btn" aria-label="Compare">
-                      <i className="fi fi-rs-shuffle"></i>
-                    </a>
-                  </div>
-                  {prod.badge && (
-                    <div className={`product__badge ${prod.badgeClass || "light-pink"}`}>
-                      {prod.badge}
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-500">
+              <Loader2 className="animate-spin text-emerald-600" size={32} />
+              <p className="text-sm font-medium">Loading catalog products...</p>
+            </div>
+          ) : products.length > 0 ? (
+            <>
+              <div className="shop-products__grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                {products.map((prod) => {
+                  const prodImg = prod.imgDefault || "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/card/productImage.png";
+                  const prodImgHover = prod.imgHover || prodImg;
+
+                  return (
+                    <div key={prod.id} className="product__item group relative">
+                      <div className="product__banner">
+                        <Link href={`/Shop/${prod.id}`} className="product__images block relative overflow-hidden rounded-xl h-[280px]">
+                          <Image
+                            src={prodImg}
+                            alt={prod.title}
+                            className="product__img default w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-105"
+                            width={300}
+                            height={370}
+                            unoptimized
+                          />
+                          <Image
+                            src={prodImgHover}
+                            alt={prod.title}
+                            className="product__img hover w-full h-full object-cover absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-all duration-500 rounded-xl group-hover:scale-105"
+                            width={300}
+                            height={370}
+                            unoptimized
+                          />
+                        </Link>
+                        <div className="product__actions opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <Link href={`/Shop/${prod.id}`} className="action__btn" aria-label="Quick View">
+                            <i className="fi fi-rs-eye"></i>
+                          </Link>
+                          <button
+                            onClick={(e) => handleAddToWishlist(e, prod)}
+                            className="action__btn cursor-pointer"
+                            aria-label="Add to Wishlist"
+                          >
+                            <i className="fi fi-rs-heart"></i>
+                          </button>
+                        </div>
+                        {prod.badge && (
+                          <div className={`product__badge ${prod.badgeClass || "light-pink"}`}>
+                            {prod.badge}
+                          </div>
+                        )}
+                      </div>
+                      <div className="product__content mt-4">
+                        <span className="product__category">{prod.category?.name || "Uncategorized"}</span>
+                        <Link href={`/Shop/${prod.id}`}>
+                          <h3 className="product__title font-semibold text-gray-800 hover:text-emerald-700 transition-colors text-sm truncate">
+                            {prod.title}
+                          </h3>
+                        </Link>
+                        <div className="product__rating text-amber-450 my-1">
+                          {Array.from({ length: Math.round(prod.rating || 5) }).map((_, rIdx) => (
+                            <i key={rIdx} className="fi fi-rs-star mr-1"></i>
+                          ))}
+                        </div>
+                        <div className="product__price flex items-center gap-2 mt-1">
+                          <span className="new__price text-emerald-650 font-bold">${prod.newPrice.toFixed(2)}</span>
+                          {prod.oldPrice > prod.newPrice && (
+                            <span className="old__price text-gray-400 line-through text-xs">${prod.oldPrice.toFixed(2)}</span>
+                          )}
+                        </div>
+                        <button
+                          onClick={(e) => handleAddToCart(e, prod)}
+                          className="action__btn cart__btn hover:scale-110 transition-transform duration-200 cursor-pointer absolute bottom-4 right-4 bg-emerald-50 text-emerald-650 border border-emerald-100 hover:bg-emerald-600 hover:text-white"
+                          aria-label="Add To Cart"
+                        >
+                          <i className="fi fi-rs-shopping-bag-add"></i>
+                        </button>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+
+              {/* Dynamic Pagination Controls */}
+              {totalPage > 1 && (
+                <div className="pagination flex items-center justify-center gap-2 mt-10">
+                  {Array.from({ length: totalPage }).map((_, idx) => {
+                    const pageNum = idx + 1;
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`pagination__link cursor-pointer px-4 py-2 border rounded-lg text-sm font-semibold transition-all ${
+                          page === pageNum
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-gray-650 border-gray-200 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                  {page < totalPage && (
+                    <button
+                      onClick={() => setPage(prev => prev + 1)}
+                      className="pagination__link icon cursor-pointer px-4 py-2 border rounded-lg text-sm font-semibold border-gray-200 bg-white hover:bg-gray-50"
+                    >
+                      &gt;
+                    </button>
                   )}
                 </div>
-                <div className="product__content">
-                  <span className="product__category">{prod.category}</span>
-                  <Link href={`/Shop/${prod.id}`}>
-                    <h3 className="product__title font-semibold text-gray-800 hover:text-emerald-700 transition-colors">
-                      {prod.title}
-                    </h3>
-                  </Link>
-                  <div className="product__rating">
-                    {Array.from({ length: prod.rating }).map((_, rIdx) => (
-                      <i key={rIdx} className="fi fi-rs-star mr-1"></i>
-                    ))}
-                  </div>
-                  <div className="product__price flex">
-                    <span className="new__price">{prod.newPrice}</span>
-                    <span className="old__price">{prod.oldPrice}</span>
-                  </div>
-                  <a href="#cart" className="action__btn cart__btn hover:scale-110 transition-transform duration-200" aria-label="Add To Cart">
-                    <i className="fi fi-rs-shopping-bag-add"></i>
-                  </a>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="pagination">
-            <a href="#page" className="pagination__link active">1</a>
-            <a href="#page" className="pagination__link">2</a>
-            <a href="#page" className="pagination__link">3</a>
-            <a href="#page" className="pagination__link icon">&gt;</a>
-          </div>
+              )}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 gap-2 text-gray-400 border border-dashed rounded-xl bg-gray-50/50">
+              <AlertCircle size={32} className="text-gray-300" />
+              <p className="text-sm font-medium">No products matched the active filters.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -140,7 +140,7 @@ export default function UserAvatar() {
         className="flex items-center gap-2 focus:outline-none transition-transform hover:scale-105"
         aria-label="Open user menu"
       >
-        <Avatar className="cursor-pointer border-2 border-transparent hover:border-emerald-500 transition-all">
+        <Avatar className="w-10 h-10 cursor-pointer border-2 border-transparent hover:border-emerald-500 transition-all">
           {uploading ? (
             <AvatarFallback>
               <div className="w-5 h-5 border-2 border-gray-300 border-t-emerald-600 rounded-full animate-spin" />

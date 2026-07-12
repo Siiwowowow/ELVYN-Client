@@ -1,11 +1,16 @@
+/* eslint-disable react-hooks/immutability */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 import { featuredProducts, popularProducts, newAddedProducts } from "./data";
+import { useUser } from "@/hooks/useUser";
 
 export default function ProductsTabbed() {
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState<
     "featured" | "popular" | "new-added"
   >("featured");
@@ -14,6 +19,82 @@ export default function ProductsTabbed() {
     if (activeTab === "popular") return popularProducts;
     if (activeTab === "new-added") return newAddedProducts;
     return featuredProducts;
+  };
+
+  const handleAddToCart = (e: React.MouseEvent, prod: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your cart!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const cart = JSON.parse(window.localStorage.getItem("elvyn_cart") || "[]");
+        const existingIndex = cart.findIndex((item: any) => item.id === prod.id);
+        
+        const priceNum = typeof prod.newPrice === "string" 
+          ? parseFloat(prod.newPrice.replace(/[^0-9.]/g, "")) 
+          : Number(prod.newPrice || 0);
+
+        if (existingIndex > -1) {
+          cart[existingIndex].qty += 1;
+        } else {
+          cart.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault || "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/card/productImage.png",
+            price: priceNum,
+            qty: 1
+          });
+        }
+        window.localStorage.setItem("elvyn_cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("elvyn_cart_updated"));
+        toast.success(`"${prod.title}" added to shopping cart!`);
+      } catch (err) {
+        console.error("Cart error:", err);
+      }
+    }
+  };
+
+  const handleAddToWishlist = (e: React.MouseEvent, prod: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your wishlist!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const wishlist = JSON.parse(window.localStorage.getItem("elvyn_wishlist") || "[]");
+        const exists = wishlist.some((item: any) => item.id === prod.id);
+
+        const priceNum = typeof prod.newPrice === "string" 
+          ? parseFloat(prod.newPrice.replace(/[^0-9.]/g, "")) 
+          : Number(prod.newPrice || 0);
+
+        if (!exists) {
+          wishlist.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault || "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/card/productImage.png",
+            price: priceNum,
+            inStock: true
+          });
+          window.localStorage.setItem("elvyn_wishlist", JSON.stringify(wishlist));
+          window.dispatchEvent(new Event("elvyn_wishlist_updated"));
+          toast.success(`"${prod.title}" added to wishlist!`);
+        } else {
+          toast.info(`"${prod.title}" is already in your wishlist!`);
+        }
+      } catch (err) {
+        console.error("Wishlist error:", err);
+      }
+    }
   };
 
   return (
@@ -70,6 +151,7 @@ export default function ProductsTabbed() {
                     className="product__img default w-full h-full object-contain p-4 sm:p-5 md:p-6 transition-all duration-500"
                     width={300}
                     height={260}
+                    unoptimized
                   />
                   <Image
                     src={prod.imgHover}
@@ -77,6 +159,7 @@ export default function ProductsTabbed() {
                     className="product__img hover w-full h-full object-contain p-4 sm:p-5 md:p-6 absolute top-0 left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                     width={300}
                     height={260}
+                    unoptimized
                   />
                 </Link>
 
@@ -105,13 +188,13 @@ export default function ProductsTabbed() {
                   >
                     <i className="fi fi-rs-eye text-xs sm:text-sm"></i>
                   </Link>
-                  <Link
-                    href="#wishlist"
-                    className="action__btn w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-[#063c28] hover:text-white hover:scale-110 transition-all duration-300 transform -translate-y-1 group-hover:translate-y-0 delay-75"
+                  <button
+                    onClick={(e) => handleAddToWishlist(e, prod)}
+                    className="action__btn w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-[#063c28] hover:text-white hover:scale-110 transition-all duration-300 transform -translate-y-1 group-hover:translate-y-0 delay-75 cursor-pointer"
                     aria-label="Add to Wishlist"
                   >
                     <i className="fi fi-rs-heart text-xs sm:text-sm"></i>
-                  </Link>
+                  </button>
                   <Link
                     href="#compare"
                     className="action__btn w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white rounded-full shadow-md hover:bg-[#063c28] hover:text-white hover:scale-110 transition-all duration-300 transform -translate-y-1 group-hover:translate-y-0 delay-150"
@@ -123,11 +206,8 @@ export default function ProductsTabbed() {
 
                 {/* Cart button - side of image */}
                 <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    console.log("Added to cart:", prod.id);
-                  }}
-                  className="cart__btn absolute bottom-2 sm:bottom-2.5 md:bottom-3 right-2 sm:right-2.5 md:right-3 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white text-[#063c28] rounded-full shadow-md hover:bg-[#063c28] hover:text-white hover:scale-110 transition-all duration-300 border border-gray-100 hover:border-[#063c28] z-10"
+                  onClick={(e) => handleAddToCart(e, prod)}
+                  className="cart__btn absolute bottom-2 sm:bottom-2.5 md:bottom-3 right-2 sm:right-2.5 md:right-3 w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 flex items-center justify-center bg-white text-[#063c28] rounded-full shadow-md hover:bg-[#063c28] hover:text-white hover:scale-110 transition-all duration-300 border border-gray-100 hover:border-[#063c28] z-10 cursor-pointer"
                   aria-label="Add To Cart"
                 >
                   <i className="fi fi-rs-shopping-bag-add text-xs sm:text-sm"></i>

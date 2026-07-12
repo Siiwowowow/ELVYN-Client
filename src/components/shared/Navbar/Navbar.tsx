@@ -21,12 +21,28 @@ import WishlistIcon from "./WishlistIcon";
 import CartIcon from "./CartIcon";
 import NavLinks from "./NavLinks";
 import type { NavbarProps } from "./types";
+import { toast } from "sonner";
+
+const getInitials = (name?: string, email?: string): string => {
+  if (name) {
+    return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  }
+  if (email) return email[0].toUpperCase();
+  return "U";
+};
 
 export default function Navbar({ showTopBar = true }: NavbarProps) {
-  const { user } = useUser();
+  const { user, logout } = useUser();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    toast.loading("Logging out...", { id: "logout" });
+    await logout();
+    toast.success("Logged out successfully!", { id: "logout" });
+  };
 
   // Handle scroll effect
   useEffect(() => {
@@ -60,13 +76,22 @@ export default function Navbar({ showTopBar = true }: NavbarProps) {
     return () => document.removeEventListener("keydown", handleEscape);
   }, [menuOpen]);
 
-  // Hide navbar on auth routes
+  // Hide navbar on auth and dashboard routes
   const isAuthRoute =
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname === "/forgot-password";
+    pathname
+      ? pathname === "/login" ||
+        pathname === "/register" ||
+        pathname === "/forgot-password"
+      : false;
 
-  if (isAuthRoute) {
+  const isDashboardRoute =
+    pathname
+      ? pathname.startsWith("/admin") ||
+        pathname.startsWith("/seller") ||
+        pathname.startsWith("/user")
+      : false;
+
+  if (isAuthRoute || isDashboardRoute) {
     return null;
   }
 
@@ -155,17 +180,16 @@ export default function Navbar({ showTopBar = true }: NavbarProps) {
 
       {/* Mobile Menu Drawer */}
       <div
-        className={`fixed top-0 right-0 h-full w-[85%] max-w-[320px] bg-white dark:bg-gray-900 z-50 transform transition-transform duration-300 ease-in-out shadow-2xl md:hidden ${
+        className={`fixed top-0 right-0 h-full w-[85%] max-w-[320px] bg-[#0f766e] text-white z-50 transform transition-transform duration-300 ease-in-out shadow-2xl md:hidden ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
         <div className="flex flex-col h-full">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-800">
-            <Logo onClick={() => setMenuOpen(false)} width={100} />
+          <div className="flex items-center justify-end p-4 border-b border-emerald-700/50">
             <button
               onClick={() => setMenuOpen(false)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              className="p-2 hover:bg-emerald-700/50 rounded-full text-white transition-colors"
               aria-label="Close menu"
             >
               <X className="w-5 h-5" />
@@ -173,60 +197,53 @@ export default function Navbar({ showTopBar = true }: NavbarProps) {
           </div>
 
           {/* Search in Mobile */}
-          <div className="p-4 border-b border-gray-200 dark:border-gray-800">
-            <SearchBar onSearchSubmit={() => setMenuOpen(false)} />
+          <div className="p-4 border-b border-emerald-700/50">
+            <SearchBar onSearchSubmit={() => setMenuOpen(false)} theme="primary" />
           </div>
 
           {/* Navigation Links */}
           <nav className="flex-1 overflow-y-auto py-4">
-            <NavLinks orientation="vertical" onLinkClick={() => setMenuOpen(false)} />
+            <NavLinks orientation="vertical" onLinkClick={() => setMenuOpen(false)} theme="primary" />
           </nav>
 
-          {/* Quick Actions */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-800">
-            <div className="flex items-center gap-4 mb-4">
-              <WishlistIcon 
-                showText={true} 
-                onClick={() => setMenuOpen(false)} 
-                className="flex-1 flex justify-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-              />
-              <CartIcon 
-                showText={true} 
-                onClick={() => setMenuOpen(false)} 
-                className="flex-1 flex justify-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-              />
-            </div>
-
+          {/* Drawer Footer Actions */}
+          <div className="p-4 border-t border-emerald-700/50">
             {/* Auth Buttons - Mobile */}
             {!user && (
-              <AuthButtons orientation="vertical" onLinkClick={() => setMenuOpen(false)} />
+              <AuthButtons orientation="vertical" onLinkClick={() => setMenuOpen(false)} theme="primary" />
             )}
 
             {/* User Info - Mobile */}
             {user && (
-              <div className="space-y-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <div className="space-y-3">
                 <div className="flex items-center gap-3 px-2">
-                  <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                    <User className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">{user.name || "User"}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name || "User"}
+                      className="w-10 h-10 rounded-full object-cover border-2 border-emerald-400"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-white text-emerald-700 flex items-center justify-center font-bold text-sm">
+                      {getInitials(user.name, user.email)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-white truncate">{user.name || "User"}</p>
+                    <p className="text-xs text-emerald-200 truncate">{user.email}</p>
                   </div>
                 </div>
                 <Link
                   href="/profile"
                   onClick={() => setMenuOpen(false)}
-                  className="block w-full text-center px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="block w-full text-center px-4 py-2.5 text-sm font-medium text-emerald-100 border border-emerald-500 rounded-lg hover:bg-white/10 hover:text-white transition-colors"
                 >
                   My Profile
                 </Link>
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    // Add logout logic here
-                  }}
-                  className="block w-full text-center px-4 py-3 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors"
+                  onClick={handleLogout}
+                  className="block w-full text-center px-4 py-2.5 text-sm font-medium text-red-200 border border-red-500/30 bg-red-950/20 rounded-lg hover:bg-red-600 hover:text-white transition-colors"
                 >
                   <span className="flex items-center justify-center gap-2">
                     <LogOut className="w-4 h-4" />

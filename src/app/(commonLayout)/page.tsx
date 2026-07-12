@@ -1,7 +1,7 @@
 "use client";
 
 import React, { Suspense } from "react";
-import HomePage from "./(commonLayout)/Home/page";
+import HomePage from "./Home/page";
 import { GoogleLoginSuccess } from "@/components/GoogleLoginSuccess";
 
 export default function Page() {

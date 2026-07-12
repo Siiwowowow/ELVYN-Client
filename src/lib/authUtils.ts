@@ -1,6 +1,6 @@
 // src/lib/authUtils.ts
 
-export type UserRole = "SUPER_ADMIN" | "ADMIN" | "SELLER" | "CUSTOMER";
+export type UserRole = "SUPER_ADMIN" | "ADMIN" | "SELLER" | "CUSTOMER" | "USER";
 
 export const authRoutes = [
   "/login",
@@ -21,13 +21,13 @@ export type RouteConfig = {
 
 // Customer Routes
 export const customerRoutes: RouteConfig = {
-  exact: ["/dashboard", "/cart", "/checkout", "/orders", "/wishlist", "/profile"],
-  pattern: [/^\/orders\/.*/, /^\/profile\/.*/],
+  exact: ["/user/dashboard", "/checkout", "/orders"],
+  pattern: [/^\/orders\/.*/, /^\/user\/.*/],
 };
 
 // Seller Routes
 export const sellerRoutes: RouteConfig = {
-  exact: ["/seller/dashboard", "/seller/medicines", "/seller/orders", "/seller/profile"],
+  exact: ["/seller/dashboard", "/seller/products", "/seller/orders", "/seller/profile"],
   pattern: [/^\/seller\/.*/],
 };
 
@@ -39,8 +39,8 @@ export const adminRoutes: RouteConfig = {
 
 // Common Protected Routes
 export const commonProtectedRoutes: RouteConfig = {
-  exact: ["/change-password"],
-  pattern: [],
+  exact: ["/change-password", "/profile", "/Cart", "/cart", "/Wishlist", "/wishlist"],
+  pattern: [/^\/profile\/.*/, /^\/Cart.*/, /^\/cart.*/, /^\/Wishlist.*/, /^\/wishlist.*/],
 };
 
 export const isRouteMatches = (pathname: string, routes: RouteConfig): boolean => {
@@ -67,7 +67,8 @@ export const getDefaultDashboardRoute = (role: UserRole): string => {
     case "SELLER":
       return "/seller/dashboard";
     case "CUSTOMER":
-      return "/dashboard";
+    case "USER":
+      return "/user/dashboard";
     default:
       return "/";
   }
@@ -81,17 +82,18 @@ export const isValidRedirectForRole = (redirectPath: string, role: UserRole): bo
 
   // SUPER_ADMIN can access admin routes
   if (routeOwner === "ADMIN" && (role === "SUPER_ADMIN" || role === "ADMIN")) return true;
+  if (routeOwner === "CUSTOMER" && (role === "CUSTOMER" || role === "USER")) return true;
   if (routeOwner === role) return true;
 
   return false;
 };
 
-// ✅ লগইন বা রেজিস্ট্রেশনের পর রিডাইরেক্ট
+// ✅ লগইন বা রেজিস্ট্রেশনের পর রিডাইরেক্ট (ড্যাশবোর্ডের পরিবর্তে হোমে যাবে)
 export const getRedirectAfterLogin = (role: UserRole, redirectPath?: string): string => {
   // যদি redirectPath দেওয়া থাকে এবং valid হয়
   if (redirectPath && isValidRedirectForRole(redirectPath, role)) {
     return redirectPath;
   }
-  // নাহলে রোল অনুযায়ী ডিফল্ট ড্যাশবোর্ড
-  return getDefaultDashboardRoute(role);
+  // নাহলে হোমে রিডাইরেক্ট (ড্যাশবোর্ড এভয়েড করার জন্য)
+  return "/";
 };

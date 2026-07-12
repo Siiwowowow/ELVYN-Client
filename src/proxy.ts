@@ -61,9 +61,9 @@ export async function proxy(request: NextRequest) {
       return response;
     }
 
-    // ✅ Rule 1: Logged-in users should not access auth pages
+    // ✅ Rule 1: Logged-in users should not access auth pages (redirect to Home instead of Dashboard)
     if (isAuth && isValidAccessToken && pathname !== "/verify-email" && pathname !== "/reset-password") {
-      return NextResponse.redirect(new URL(getDefaultDashboardRoute(userRole as UserRole), request.url));
+      return NextResponse.redirect(new URL("/", request.url));
     }
 
     // ✅ Rule 2: Reset password page
@@ -104,7 +104,8 @@ export async function proxy(request: NextRequest) {
     if (accessToken) {
       const userInfo = await getUserInfo();
       if (userInfo) {
-        // Email verification needed
+        // Email verification check bypassed as verification is disabled
+        /*
         if (userInfo.emailVerified === false) {
           if (pathname !== "/verify-email") {
             const verifyEmailUrl = new URL("/verify-email", request.url);
@@ -117,6 +118,7 @@ export async function proxy(request: NextRequest) {
         if (userInfo.emailVerified && pathname === "/verify-email") {
           return NextResponse.redirect(new URL(getDefaultDashboardRoute(userRole as UserRole), request.url));
         }
+        */
 
         // Password change needed
         if (userInfo.needPasswordChange) {
@@ -154,7 +156,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (routeOwner === "CUSTOMER") {
-      if (userRole !== "CUSTOMER") {
+      if (userRole !== "CUSTOMER" && userRole !== "USER") {
         return NextResponse.redirect(new URL(getDefaultDashboardRoute(userRole as UserRole), request.url));
       }
     }

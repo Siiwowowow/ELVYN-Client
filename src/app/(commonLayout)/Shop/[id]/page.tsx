@@ -1,8 +1,12 @@
 "use client";
-
-import React, { useState } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/immutability */
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
+import { getProductByIdService } from "@/services/product.services";
+import { useUser } from "@/hooks/useUser";
 
 interface Product {
   id: string;
@@ -61,19 +65,56 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const unwrappedParams = React.use ? React.use(params as Promise<{ id: string }>) : (params as { id: string });
   const id = unwrappedParams?.id;
 
+  const { user } = useUser();
+  const [product, setProduct] = useState<any>(fallbackProduct);
+  const [loading, setLoading] = useState(true);
+
   // Find product by id, default to fallbackProduct if "details" or not found
-  const product = allProducts.find((p) => p.id === id) || fallbackProduct;
+  useEffect(() => {
+    const loadProduct = async () => {
+      setLoading(true);
+      const mock = allProducts.find((p) => p.id === id);
+      if (mock) {
+        setProduct(mock);
+        setMainImg(mock.imgDefault);
+      }
+
+      if (id && id.length > 10) {
+        const res = await getProductByIdService(id);
+        if (res.success && res.data) {
+          const dbProduct = {
+            id: res.data.id,
+            category: res.data.category?.name || "Clothing",
+            title: res.data.title,
+            imgDefault: res.data.imgDefault,
+            imgHover: res.data.imgHover || res.data.imgDefault,
+            badge: res.data.badge,
+            badgeClass: res.data.badgeClass,
+            rating: res.data.rating || 5,
+            newPrice: `$${Number(res.data.newPrice).toFixed(2)}`,
+            oldPrice: `$${Number(res.data.oldPrice).toFixed(2)}`,
+            description: res.data.description,
+            specification: res.data.specification
+          };
+          setProduct(dbProduct);
+          setMainImg(dbProduct.imgDefault);
+        }
+      }
+      setLoading(false);
+    };
+    loadProduct();
+  }, [id]);
 
   // Image Switcher State
-  const [mainImg, setMainImg] = useState<string>(product.imgDefault);
-  const smallImages = [product.imgHover, product.imgDefault, product.imgHover];
+  const [mainImg, setMainImg] = useState<string>(fallbackProduct.imgDefault);
+  const smallImages = [product.imgHover || product.imgDefault, product.imgDefault, product.imgHover || product.imgDefault];
 
   // Tab State
   const [activeTab, setActiveTab] = useState<"info" | "reviews">("info");
 
   // Selection States
   const [selectedSize, setSelectedSize] = useState<string>("M");
-  const [qty, setQty] = useState<number>(3);
+  const [qty, setQty] = useState<number>(1);
 
   // Review Form States
   const [rating, setRating] = useState<number>(5);
@@ -92,6 +133,81 @@ export default function ProductDetailsPage({ params }: PageProps) {
   const relatedProducts = allProducts
     .filter((p) => p.id !== product.id)
     .slice(0, 4);
+
+  // Cart and Wishlist Handlers
+  const handleAddToCartProduct = (e: React.MouseEvent, prod: any, quantity: number = 1) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your cart!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const cart = JSON.parse(window.localStorage.getItem("elvyn_cart") || "[]");
+        const priceNum = typeof prod.newPrice === "string"
+          ? parseFloat(prod.newPrice.replace(/[^0-9.]/g, ""))
+          : Number(prod.newPrice || 0);
+
+        const existingIndex = cart.findIndex((item: any) => item.id === prod.id);
+        if (existingIndex > -1) {
+          cart[existingIndex].qty += quantity;
+        } else {
+          cart.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault,
+            price: priceNum,
+            qty: quantity
+          });
+        }
+        window.localStorage.setItem("elvyn_cart", JSON.stringify(cart));
+        window.dispatchEvent(new Event("elvyn_cart_updated"));
+        toast.success(`"${prod.title}" added to shopping cart!`);
+      } catch (err) {
+        console.error("Cart error:", err);
+      }
+    }
+  };
+
+  const handleAddToWishlistProduct = (e: React.MouseEvent, prod: any) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      toast.error("Please login to add items to your wishlist!");
+      window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      return;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const wishlist = JSON.parse(window.localStorage.getItem("elvyn_wishlist") || "[]");
+        const exists = wishlist.some((item: any) => item.id === prod.id);
+        const priceNum = typeof prod.newPrice === "string"
+          ? parseFloat(prod.newPrice.replace(/[^0-9.]/g, ""))
+          : Number(prod.newPrice || 0);
+
+        if (!exists) {
+          wishlist.push({
+            id: prod.id,
+            title: prod.title,
+            img: prod.imgDefault,
+            price: priceNum,
+            inStock: true
+          });
+          window.localStorage.setItem("elvyn_wishlist", JSON.stringify(wishlist));
+          window.dispatchEvent(new Event("elvyn_wishlist_updated"));
+          toast.success(`"${prod.title}" added to wishlist!`);
+        } else {
+          toast.info(`"${prod.title}" is already in your wishlist!`);
+        }
+      } catch (err) {
+        console.error("Wishlist error:", err);
+      }
+    }
+  };
 
   return (
     <div className="w-full">
@@ -170,11 +286,7 @@ export default function ProductDetailsPage({ params }: PageProps) {
               </span>
             </div>
             <p className="short__description text-gray-600 leading-relaxed mb-6 text-sm sm:text-base">
-              Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-              Voluptate, fuga. Quo blanditiis recusandae facere nobis cum optio,
-              inventore aperiam placeat, quis maxime nam officiis illum? Optio
-              et nisi eius, inventore impedit ratione sunt, cumque, eligendi
-              asperiores iste porro non error?
+              This premium product is crafted from high-quality, breathable fabric designed to deliver ultimate comfort and durability for everyday wear. Featuring a modern, versatile design that complements any style, it is the perfect addition to your curated fashion collection.
             </p>
             
             <ul className="products__list space-y-3 mb-6 border-b border-gray-100 pb-6">
@@ -239,11 +351,15 @@ export default function ProductDetailsPage({ params }: PageProps) {
                 onChange={(e) => setQty(Math.max(1, parseInt(e.target.value) || 1))}
                 min="1"
               />
-              <button className="btn btn--sm !h-[45px] px-6 hover:scale-[1.02] active:scale-95 transition-all">
+              <button 
+                onClick={(e) => handleAddToCartProduct(e, product, qty)}
+                className="btn btn--sm !h-[45px] px-6 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+              >
                 Add To Cart
               </button>
               <button
                 type="button"
+                onClick={(e) => handleAddToWishlistProduct(e, product)}
                 className="w-11 h-11 border border-gray-200 rounded-xl flex items-center justify-center text-gray-500 hover:text-red-500 hover:border-red-500 hover:shadow-sm active:scale-95 transition-all cursor-pointer"
                 title="Add to Wishlist"
               >
@@ -539,10 +655,14 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   <Link href={`/Shop/${prod.id}`} className="action__btn w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#0c4f4a] hover:bg-[#def9ec] hover:text-emerald-700 transition-all">
                     <i className="fi fi-rs-eye"></i>
                   </Link>
-                  <button type="button" className="action__btn w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#0c4f4a] hover:bg-[#def9ec] hover:text-emerald-700 transition-all">
+                  <button 
+                    type="button" 
+                    onClick={(e) => handleAddToWishlistProduct(e, prod)}
+                    className="action__btn w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#0c4f4a] hover:bg-[#def9ec] hover:text-emerald-700 transition-all cursor-pointer"
+                  >
                     <i className="fi fi-rs-heart"></i>
                   </button>
-                  <button type="button" className="action__btn w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#0c4f4a] hover:bg-[#def9ec] hover:text-emerald-700 transition-all">
+                  <button type="button" className="action__btn w-10 h-10 rounded-full bg-white border border-gray-100 shadow-sm flex items-center justify-center text-[#0c4f4a] hover:bg-[#def9ec] hover:text-emerald-700 transition-all cursor-pointer">
                     <i className="fi fi-rs-shuffle"></i>
                   </button>
                 </div>
@@ -572,7 +692,11 @@ export default function ProductDetailsPage({ params }: PageProps) {
                   <span className="new__price font-bold text-emerald-600 text-sm">{prod.newPrice}</span>
                   <span className="old__price text-gray-400 line-through text-xs">{prod.oldPrice}</span>
                 </div>
-                <button type="button" className="action__btn cart__btn absolute bottom-4 right-4 w-9 h-9 rounded-full bg-[#def9ec] text-[#0c4f4a] flex items-center justify-center border border-[#c4f3dc] hover:bg-emerald-600 hover:text-white transition-all duration-300">
+                <button 
+                  type="button" 
+                  onClick={(e) => handleAddToCartProduct(e, prod, 1)}
+                  className="action__btn cart__btn absolute bottom-4 right-4 w-9 h-9 rounded-full bg-[#def9ec] text-[#0c4f4a] flex items-center justify-center border border-[#c4f3dc] hover:bg-emerald-600 hover:text-white transition-all duration-300 cursor-pointer"
+                >
                   <i className="fi fi-rs-shopping-bag-add"></i>
                 </button>
               </div>

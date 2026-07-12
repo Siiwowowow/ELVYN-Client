@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 interface SearchBarProps {
   onSearchSubmit?: () => void;
   className?: string;
+  theme?: "light" | "primary";
 }
 
-export default function SearchBar({ onSearchSubmit, className }: SearchBarProps) {
+export default function SearchBar({ onSearchSubmit, className, theme = "light" }: SearchBarProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -21,20 +22,21 @@ export default function SearchBar({ onSearchSubmit, className }: SearchBarProps)
   };
 
   return (
-    <form onSubmit={handleSearch} className={`relative flex ${className || ""}`}>
+    <form onSubmit={handleSearch} className={`relative flex items-center ${className || ""}`}>
       <input
         type="text"
         placeholder="Search..."
-        className="w-full h-10 pl-4 pr-12 border border-gray-200 dark:border-gray-700 rounded-l-md bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+        className={`w-full h-9 pl-9 pr-4 border rounded-lg text-xs focus:outline-none transition-colors ${
+          theme === "primary"
+            ? "border-emerald-500/30 bg-emerald-700/30 text-white placeholder-emerald-200/60 focus:border-white"
+            : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:border-emerald-500"
+        }`}
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />
-      <button
-        type="submit"
-        className="h-10 px-4 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-r-md transition-colors"
-      >
-        <Search className="w-4 h-4" />
-      </button>
+      <Search className={`absolute left-3 w-4 h-4 pointer-events-none ${
+        theme === "primary" ? "text-emerald-200" : "text-gray-400"
+      }`} />
     </form>
   );
 }

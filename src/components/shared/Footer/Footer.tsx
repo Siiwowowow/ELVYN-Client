@@ -1,8 +1,30 @@
+"use client";
+
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  const isAuthRoute =
+    pathname
+      ? pathname === "/login" ||
+        pathname === "/register" ||
+        pathname === "/forgot-password"
+      : false;
+
+  const isDashboardRoute =
+    pathname
+      ? pathname.startsWith("/admin") ||
+        pathname.startsWith("/seller") ||
+        pathname.startsWith("/user")
+      : false;
+
+  if (isAuthRoute || isDashboardRoute) {
+    return null;
+  }
   return (
     <footer className="border-t border-gray-200 mt-6 sm:mt-8 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-6 lg:gap-8 xl:gap-12 py-8 sm:py-10 md:py-12 lg:py-14 xl:py-16 text-left">
@@ -265,7 +287,7 @@ export default function Footer() {
               <span className="text-xs sm:text-sm text-gray-500 hidden sm:block">Cookies</span>
             </div>
             <p className="text-xs sm:text-sm text-gray-400 text-center sm:text-left">
-              Designed with <span className="text-red-500">♥</span> by Antigravity
+              Designed with <span className="text-red-500">♥</span> by Rafsan
             </p>
           </div>
         </div>

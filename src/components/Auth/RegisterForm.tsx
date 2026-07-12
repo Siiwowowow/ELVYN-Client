@@ -74,8 +74,8 @@ const RegisterForm = () => {
           return;
         }
 
-        toast.success("Registration successful! Please check your email.");
-        router.push(`/verify-email?email=${encodeURIComponent(value.email)}`);
+        toast.success("Registration successful! Redirecting to login...");
+        router.push("/login");
       } catch (err: any) {
         setServerError(err.message);
         toast.error(err.message);
